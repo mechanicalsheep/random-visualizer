@@ -22,7 +22,7 @@
       </v-col>
     
       <v-col cols="12" class="text-center">
-      <v-btn @click="RunRandomizer()">Randomize!</v-btn>
+      <v-btn @click="test()">Randomize!</v-btn>
       <v-btn @click="StopRandomizer()">Stop</v-btn>
       </v-col>
      
@@ -75,7 +75,7 @@ export default {
     InitializeNodeConfig(){
       this.nodeConfigs=[];
       for(let i=0; i < this.numNodes; i++){
-      this.nodeConfigs.push({index:i+1,counter:0,isActive:false, ratio:0})
+      this.nodeConfigs.push({index:i+1,counter:0,isActive:false, ratio:0, weight:0})
       }
     },
     RunRandomizer(){
@@ -110,6 +110,24 @@ export default {
       this.nodeConfigs.forEach(config=>{
         config.ratio = (config.counter/this.globalCounter *100).toFixed(2);
       })
+    },
+    test(){
+      this.nodeConfigs[0].weight=0.5;
+      this.nodeConfigs[1].weight=0.4;
+      this.nodeConfigs[2].weight=0.1;
+
+      let chosenNode = this.ChooseNode();
+      console.log("Selected node: "+chosenNode.index);
+    },
+    ChooseNode(){
+      let sum=0;
+      let rand = Math.random();
+      for(let i in this.nodeConfigs){
+        sum+=this.nodeConfigs[i].weight;
+        if(rand <= sum){
+          return this.nodeConfigs[i];
+        }
+      }
     }
   
     
