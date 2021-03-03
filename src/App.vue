@@ -4,7 +4,7 @@
       app
       color="yellow"
       dark
-      height="200"
+      height="220"
     >
   
     <v-row style="padding-top:10px; width:100%;">
@@ -12,20 +12,28 @@
    <h2 style="color: black; text-align:center;">Random Visualizer</h2>
       </v-col>
     
-    
-      <v-col cols="6">
+    <v-row style="width:100%;" class="justify-center pt-3">
+      <v-col cols="2">
+        <div >
         <v-text-field v-model="numNodes" type="number" light color="black" label="Number of nodes"/>
+        </div>
       </v-col>
     
-      <v-col cols="6">
-        <v-text-field v-model="randomization" light color="black" label="Randomization"/>
+      <v-col cols="2">
+        <div >
+        <v-text-field v-model="intervalSeconds" type="Number" light color="black" label="Speed (in seconds)"/>
+        </div>
       </v-col>
-    
-      <v-col cols="12" class="text-center">
-      <v-btn @click="test()">Randomize!</v-btn>
+    </v-row >
+    <v-row style="width:100%;" class="justify-center">
+      <v-col cols="auto" class="text-center">
+      <v-btn @click="RunRandomizer()">Randomize!</v-btn>
+      </v-col>
+      <v-col cols="auto">
       <v-btn @click="StopRandomizer()">Stop</v-btn>
       </v-col>
      
+    </v-row>
     </v-row>
    
     </v-app-bar>
@@ -60,9 +68,14 @@ export default {
       if(value){
         console.log(true);
       }
+    },
+    intervalSeconds:function(){
+      this.StopRandomizer();
+      this.RunRandomizer();
     }
   },
   data: () => ({
+    intervalSeconds:2,
     numNodes:5,
     randomization:'',
     nodeConfigs:[],
@@ -79,37 +92,46 @@ export default {
       }
     },
     RunRandomizer(){
-      console.log("Randomizer Running")
-     
-     let self = this;
-       this.randomInterval= setInterval(function(){
+      let self = this;
+      this.randomInterval= setInterval(function(){
         let randomResult =  self.Randomize();
         if(self.activeConfig){
           self.activeConfig.isActive=false;
         }
         self.globalCounter++;
         self.activeConfig = self.nodeConfigs[randomResult];
+        if(self.ShouldDie(self.activeConfig)){
+          self.Kill(self.activeConfig);
+        }
+
         self.activeConfig.counter++;
         self.activeConfig.isActive=true;
         self.CalculateRatios();
-        // self.activeConfig.ratio= self.activeConfig.counter/ self.globalCounter *100;
-        
-       },2000)
-       
-     
+      },this.intervalSeconds*1000)
     },
     StopRandomizer(){
       clearInterval(this.randomInterval);
     },
     Randomize(){
-      let result = Math.floor(Math.random() * Math.floor(this.numNodes));
-      console.log(result);
+      let result = Math.floor(Math.random() * Math.floor(this.nodeConfigs.length));
       return result;
     },
     CalculateRatios(){
       this.nodeConfigs.forEach(config=>{
         config.ratio = (config.counter/this.globalCounter *100).toFixed(2);
       })
+    },
+    ShouldDie(config){
+      let random = Math.random();
+      if(random <= config.weight){
+        return true;
+      }
+      return false;
+    },
+    Kill(config){
+      config.disable=true;
+      this.StopRandomizer();
+      console.log(`Node ${config.index} just passed away mysteriously. RIP big guy.`)
     },
     test(){
       this.nodeConfigs[0].weight=0.5;

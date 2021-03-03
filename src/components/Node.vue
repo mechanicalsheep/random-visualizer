@@ -6,10 +6,11 @@
             </v-card-title>
             <v-card-text class="text-center">
                 <h3 style="font-weight:bolder;">{{nodeConfig.index}}</h3>
-                <h3>{{nodeConfig.ratio}}%</h3>
+                <h4>{{nodeConfig.ratio}}%</h4>
                 </v-card-text>
                 <v-card-actions class="justify-center">
                     <h2>{{nodeConfig.counter}}</h2>
+                    <h4>Disabled: {{nodeConfig.disabled}}</h4>
                 </v-card-actions>
         </v-card>
     </v-container>
