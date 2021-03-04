@@ -1,5 +1,5 @@
 <template>
-    <v-container style="max-width:fit-content;">
+    <v-container style="max-width:fit-content; height:fit-content">
         <v-card width="80px" height="100px" :color="nodeConfig.disable? 'red': 'yellow'">
             <v-card-title class="justify-center">
                 <div class="status " :class="nodeConfig.isActive? 'active':''"></div>
@@ -8,19 +8,18 @@
                 <h3 style="font-weight:bolder;">{{nodeConfig.index+1}}</h3>
                 <h4>{{nodeConfig.ratio}}%</h4>
                 </v-card-text>
-                <v-card-actions class="justify-center">
-                    <v-row style="width:100%">
-                        <v-col cols="12">
-                            <h2>{{nodeConfig.counter}}</h2>
-                        </v-col>
-                        <v-col cols="12">
-                    <h5>Chance of death: {{nodeConfig.weight*100}}%</h5>
-                        </v-col>
-                    </v-row>
-                    <v-row>
-                    </v-row>
-                </v-card-actions>
+
         </v-card>
+        <v-row class="justify-center">
+            <v-col cols="auto">
+                <h2>{{nodeConfig.counter}}</h2>
+            </v-col>
+            <v-col cols="12">
+                <h5>Chance of death: {{nodeConfig.weight*100}}%</h5>
+            </v-col>
+        </v-row>
+        <v-row>
+        </v-row>
     </v-container>
 </template>
 
@@ -28,10 +27,10 @@
 export default {
     name:"Node",
     props:['nodeConfig'],
-  
+
     data(){
         return{
-        
+
         }
     }
 }
