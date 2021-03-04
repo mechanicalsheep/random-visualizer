@@ -32,6 +32,9 @@
       <v-col cols="auto">
       <v-btn @click="StopRandomizer()">Stop</v-btn>
       </v-col>
+      <v-col cols="auto">
+      <v-btn @click="test()">Test</v-btn>
+      </v-col>
      
     </v-row>
     </v-row>
@@ -75,8 +78,11 @@ export default {
     }
   },
   data: () => ({
+
     intervalSeconds:2,
     numNodes:5,
+    deadNodeIndices:[],
+    aliveNodeIndices:[],
     randomization:'',
     nodeConfigs:[],
     randomizationRunning:false,
@@ -85,41 +91,37 @@ export default {
     globalCounter:0,
   }),
   methods:{
+ 
     InitializeNodeConfig(){
       this.nodeConfigs=[];
       for(let i=0; i < this.numNodes; i++){
-      this.nodeConfigs.push({index:i+1,counter:0,isActive:false, ratio:0, weight:0})
+      this.nodeConfigs.push({index:i,counter:0,isActive:false, ratio:0, weight:0, disable:false})
       }
+
+      this.nodeConfigs.map(node=>{
+        node.weight= Math.random().toPrecision(1);
+      })
+
     },
     RunRandomizer(){
-      let self = this;
-      this.randomInterval= setInterval(function(){
-        let randomResult =  self.Randomize();
-        if(self.activeConfig){
-          self.activeConfig.isActive=false;
-        }
-        self.globalCounter++;
-        self.activeConfig = self.nodeConfigs[randomResult];
-        if(self.ShouldDie(self.activeConfig)){
-          self.Kill(self.activeConfig);
-        }
-
-        self.activeConfig.counter++;
-        self.activeConfig.isActive=true;
-        self.CalculateRatios();
-      },this.intervalSeconds*1000)
+      this.randomInterval= setInterval(this.ProcessRandomization,this.intervalSeconds*1000)
     },
     StopRandomizer(){
       clearInterval(this.randomInterval);
     },
-    Randomize(){
-      let result = Math.floor(Math.random() * Math.floor(this.nodeConfigs.length));
-      return result;
+    ProcessRandomization(){
+        this.ChooseNode();
+        this.RunDeathTrigger();
     },
     CalculateRatios(){
       this.nodeConfigs.forEach(config=>{
         config.ratio = (config.counter/this.globalCounter *100).toFixed(2);
       })
+    },
+    RunDeathTrigger(){
+    if(this.ShouldDie(this.activeConfig)){
+          this.Kill(this.activeConfig);
+        }
     },
     ShouldDie(config){
       let random = Math.random();
@@ -130,26 +132,25 @@ export default {
     },
     Kill(config){
       config.disable=true;
-      this.StopRandomizer();
+      this.deadNodeIndices.push(config.index);
       console.log(`Node ${config.index} just passed away mysteriously. RIP big guy.`)
     },
-    test(){
-      this.nodeConfigs[0].weight=0.5;
-      this.nodeConfigs[1].weight=0.4;
-      this.nodeConfigs[2].weight=0.1;
-
-      let chosenNode = this.ChooseNode();
-      console.log("Selected node: "+chosenNode.index);
+    GetRandomIndex(){
+      this.aliveNodeIndices = this.nodeConfigs.filter(node=> !this.deadNodeIndices.includes(node.index)).map(node=> node.index);
+      let randomResult = Math.floor(Math.random() * Math.floor(this.aliveNodeIndices.length));
+        
+      return randomResult;
     },
     ChooseNode(){
-      let sum=0;
-      let rand = Math.random();
-      for(let i in this.nodeConfigs){
-        sum+=this.nodeConfigs[i].weight;
-        if(rand <= sum){
-          return this.nodeConfigs[i];
+       let randomResult =  this.GetRandomIndex();
+        if(this.activeConfig){
+          this.activeConfig.isActive=false;
         }
-      }
+        this.globalCounter++;
+        this.activeConfig = this.nodeConfigs[this.aliveNodeIndices[randomResult]];
+        this.activeConfig.counter++;
+        this.activeConfig.isActive=true;
+        this.CalculateRatios();
     }
   
     
