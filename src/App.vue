@@ -41,7 +41,7 @@
    
    <v-row>
      <v-col>
-     <Console :output="output"/>
+     <Console :output="output" v-on:clear-output="ClearOutput()"/>
      </v-col>
    </v-row>
     </v-app-bar>
@@ -99,6 +99,9 @@ export default {
         this.StopRandomizer();
       }
         this.InitializeNodeConfig();
+    },
+    ClearOutput(){
+      this.output=[];
     },
     InitializeNodeConfig(){
       this.nodeConfigs=[];
