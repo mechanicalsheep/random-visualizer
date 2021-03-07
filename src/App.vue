@@ -4,7 +4,7 @@
       app
       color="yellow"
       dark
-      height="220"
+      height="280"
     >
   
     <v-row style="padding-top:10px;">
@@ -24,7 +24,16 @@
         <v-text-field v-model="intervalSeconds" type="Number" light color="black" label="Speed (in seconds)"/>
         </div>
       </v-col>
+      
     </v-row >
+    <v-row style="width:100%;" justify="center">
+      <v-col cols="2">
+        <label style="color:black; font-size:larger;">Current Amount: <b style="  font-weight:bolder;">{{money}}</b></label>
+      </v-col>
+      <v-col cols="2">
+      <v-text-field light label="bet"/>
+      </v-col>
+    </v-row>
     <v-row style="width:100%;" class="justify-center">
       <v-col cols="auto" class="text-center">
       <v-btn @click="RunRandomizer()">Randomize!</v-btn>
@@ -48,8 +57,12 @@
 
     <v-main>
         <v-row  v-if="Number.parseInt(numNodes)>0">
-          <v-col style="width:fit-content; max-width:fit-content; margin:auto;" v-for="(nodeConfig, idx) in nodeConfigs" :key="idx">
-            <Node :nodeConfig="nodeConfig"/>
+          <v-col 
+          style="width:fit-content; max-width:fit-content; margin:auto;" 
+          :style="selectedNode===nodeConfig? 'background-color:green':''" 
+          v-for="(nodeConfig, idx) in nodeConfigs" :key="idx"
+          @click="SelectBettingNode(nodeConfig)">
+            <Node  :nodeConfig="nodeConfig"/>
           </v-col>
         </v-row>
     </v-main>
@@ -81,6 +94,9 @@ export default {
   },
   data: () => ({
 
+    selectedNode:'',
+    money:10,
+    betAmount:0,
     output:[],
     intervalSeconds:2,
     numNodes:5,
@@ -138,6 +154,10 @@ export default {
         this.output.push({color:'red', text:"Randomizer Stopped"});
       }
     },
+    SelectBettingNode(node){
+      this.selectedNode = node;
+      this.output.push({text:'selecting '+node.index})
+    },
     ProcessRandomization(){
         this.ChooseNode();
         this.RunDeathTrigger();
@@ -192,6 +212,17 @@ export default {
       catch(e){
         this.StopRandomizer();
         this.output.push({color:'red',text:'Error occured: '+e})
+      }
+    },
+    CheckLastManStanding(){
+      if(this.aliveNodeIndices.length===1){
+        //last node alive, stop trying to kill him!
+        this.StopRandomizer();
+
+        if(this.aliveNodeIndices[0]=== this.selectedNode.index){
+          let amountWon = this.betAmount*2;
+          this.output.push({color:"green", text:"Congratulations! You won "+amountWon+" moneys!"})
+        }
       }
     }
   
