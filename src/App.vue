@@ -98,6 +98,7 @@ export default {
       if(this.randomizationRunning){
         this.StopRandomizer();
       }
+      this.ClearOutput();
         this.InitializeNodeConfig();
     },
     ClearOutput(){
