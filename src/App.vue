@@ -143,8 +143,8 @@ export default {
         this.RunDeathTrigger();
     },
     CalculateRatios(){
-      this.nodeConfigs.forEach(config=>{
-        config.ratio = (config.counter/this.globalCounter *100).toFixed(2);
+      this.aliveNodeIndices.forEach(index=>{
+        this.nodeConfigs[index].ratio = (this.nodeConfigs[index].counter/this.globalCounter *100).toFixed(2);
       })
     },
     RunDeathTrigger(){
