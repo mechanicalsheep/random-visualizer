@@ -7,7 +7,7 @@
       height="220"
     >
   
-    <v-row style="padding-top:10px; width:100%;">
+    <v-row style="padding-top:10px;">
       <v-col :cols="12">
    <h2 style="color: black; text-align:center;">Random Visualizer</h2>
       </v-col>
@@ -33,12 +33,17 @@
       <v-btn @click="StopRandomizer()">Stop</v-btn>
       </v-col>
       <v-col cols="auto">
-      <v-btn @click="test()">Test</v-btn>
+      <v-btn @click="Reset()">Reset</v-btn>
       </v-col>
      
     </v-row>
     </v-row>
    
+   <v-row>
+     <v-col>
+     <Console :output="output"/>
+     </v-col>
+   </v-row>
     </v-app-bar>
 
     <v-main>
@@ -53,12 +58,14 @@
 
 <script>
 import Node from './components/Node'
+import Console from './components/Console'
 
 export default {
   name: 'App',
 
   components: {
-    Node
+    Node,
+    Console
   },
   created(){
    this.InitializeNodeConfig();
@@ -67,11 +74,6 @@ export default {
     numNodes:function(){
      this.InitializeNodeConfig();
     },
-    randomizationRunning:function(value){
-      if(value){
-        console.log(true);
-      }
-    },
     intervalSeconds:function(){
       this.StopRandomizer();
       this.RunRandomizer();
@@ -79,6 +81,7 @@ export default {
   },
   data: () => ({
 
+    output:[],
     intervalSeconds:2,
     numNodes:5,
     deadNodeIndices:[],
@@ -91,23 +94,45 @@ export default {
     globalCounter:0,
   }),
   methods:{
- 
+    Reset(){
+      if(this.randomizationRunning){
+        this.StopRandomizer();
+      }
+        this.InitializeNodeConfig();
+    },
     InitializeNodeConfig(){
       this.nodeConfigs=[];
+      this.deadNodeIndices=[];
       for(let i=0; i < this.numNodes; i++){
-      this.nodeConfigs.push({index:i,counter:0,isActive:false, ratio:0, weight:0, disable:false})
+        this.nodeConfigs.push({index:i,counter:0,isActive:false, ratio:0, weight:0, disable:false})
       }
 
       this.nodeConfigs.map(node=>{
         node.weight= Math.random().toPrecision(1);
       })
+        this.output.push({color:'green',text:'initialized.'})
 
     },
     RunRandomizer(){
-      this.randomInterval= setInterval(this.ProcessRandomization,this.intervalSeconds*1000)
+      try{
+        this.randomizationRunning = true;
+        this.output.push({color:'green', text:"Running Randomizer..."});
+        this.randomInterval= setInterval(this.ProcessRandomization,this.intervalSeconds*1000)
+        
+      }
+      catch(e){
+        this.StopRandomizer();
+        console.log(e);
+        
+      }
     },
     StopRandomizer(){
-      clearInterval(this.randomInterval);
+      if(this.randomizationRunning){
+
+        clearInterval(this.randomInterval);
+        this.randomizationRunning=false;
+        this.output.push({color:'red', text:"Randomizer Stopped"});
+      }
     },
     ProcessRandomization(){
         this.ChooseNode();
@@ -133,7 +158,7 @@ export default {
     Kill(config){
       config.disable=true;
       this.deadNodeIndices.push(config.index);
-      console.log(`Node ${config.index} just passed away mysteriously. RIP big guy.`)
+      this.output.push({text:`Node ${config.index} just passed away mysteriously. RIP big guy.`})
     },
     GetRandomIndex(){
       this.aliveNodeIndices = this.nodeConfigs.filter(node=> !this.deadNodeIndices.includes(node.index)).map(node=> node.index);
@@ -142,15 +167,28 @@ export default {
       return randomResult;
     },
     ChooseNode(){
-       let randomResult =  this.GetRandomIndex();
-        if(this.activeConfig){
-          this.activeConfig.isActive=false;
+      try{
+
+        if(this.deadNodeIndices.length === this.nodeConfigs.length){
+          this.StopRandomizer();
         }
-        this.globalCounter++;
-        this.activeConfig = this.nodeConfigs[this.aliveNodeIndices[randomResult]];
-        this.activeConfig.counter++;
-        this.activeConfig.isActive=true;
-        this.CalculateRatios();
+        else{
+  
+          let randomResult =  this.GetRandomIndex();
+           if(this.activeConfig){
+             this.activeConfig.isActive=false;
+           }
+           this.globalCounter++;
+           this.activeConfig = this.nodeConfigs[this.aliveNodeIndices[randomResult]];
+           this.activeConfig.counter++;
+           this.activeConfig.isActive=true;
+           this.CalculateRatios();
+        }
+      }
+      catch(e){
+        this.StopRandomizer();
+        this.output.push({color:'red',text:'Error occured: '+e})
+      }
     }
   
     
