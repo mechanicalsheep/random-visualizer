@@ -31,7 +31,7 @@
         <label style="color:black; font-size:larger;">Current Amount: <b style="  font-weight:bolder;">{{money}}</b></label>
       </v-col>
       <v-col cols="2">
-      <v-text-field light label="bet"/>
+      <v-text-field light label="bet" v-model="betAmount"/>
       </v-col>
     </v-row>
     <v-row style="width:100%;" class="justify-center">
@@ -42,7 +42,10 @@
       <v-btn @click="StopRandomizer()">Stop</v-btn>
       </v-col>
       <v-col cols="auto">
-      <v-btn @click="Reset()">Reset</v-btn>
+      <v-btn @click="PlayAgain()">Play Again</v-btn>
+      </v-col>
+      <v-col cols="auto">
+      <v-btn @click="Reset()">Reset Game</v-btn>
       </v-col>
      
     </v-row>
@@ -92,6 +95,11 @@ export default {
       this.RunRandomizer();
     }
   },
+  computed:{
+    aliveNodeIndices : function(){
+     return this.nodeConfigs.length>0? this.nodeConfigs.filter(node=> !this.deadNodeIndices.includes(node.index)).map(node=> node.index) : 0
+    }
+  },
   data: () => ({
 
     selectedNode:'',
@@ -101,7 +109,6 @@ export default {
     intervalSeconds:2,
     numNodes:5,
     deadNodeIndices:[],
-    aliveNodeIndices:[],
     randomization:'',
     nodeConfigs:[],
     randomizationRunning:false,
@@ -111,6 +118,10 @@ export default {
   }),
   methods:{
     Reset(){
+      this.PlayAgain();
+      this.money=10;
+    },
+    PlayAgain(){
       if(this.randomizationRunning){
         this.StopRandomizer();
       }
@@ -122,6 +133,7 @@ export default {
     },
     InitializeNodeConfig(){
       this.nodeConfigs=[];
+      this.selectedNode='';
       this.deadNodeIndices=[];
       for(let i=0; i < this.numNodes; i++){
         this.nodeConfigs.push({index:i,counter:0,isActive:false, ratio:0, weight:0, disable:false})
@@ -135,9 +147,11 @@ export default {
     },
     RunRandomizer(){
       try{
-        this.randomizationRunning = true;
-        this.output.push({color:'green', text:"Running Randomizer..."});
-        this.randomInterval= setInterval(this.ProcessRandomization,this.intervalSeconds*1000)
+        if(this.ValidateBet()){
+          this.randomizationRunning = true;
+          this.output.push({color:'green', text:"Running Randomizer..."});
+          this.randomInterval= setInterval(this.ProcessRandomization,this.intervalSeconds*1000)
+        }
         
       }
       catch(e){
@@ -159,8 +173,34 @@ export default {
       this.output.push({text:'selecting '+node.index})
     },
     ProcessRandomization(){
-        this.ChooseNode();
-        this.RunDeathTrigger();
+      try{
+
+        //if this is the last node, start the endgame process.
+        if(this.IsLastNodeAlive()){
+          this.RunEndGameProcess();
+        }
+        //check if all nodes are dead, stop the randomizer if they are.
+        else if(this.deadNodeIndices.length === this.nodeConfigs.length){
+          this.StopRandomizer();
+        }
+        else{
+          //if there was a previous active node then it is no longer active.
+          if(this.activeConfig){
+            this.activeConfig.isActive=false;
+            }
+            this.activeConfig =this.ChooseRandomNode();
+            this.globalCounter++;
+            this.activeConfig.counter++;
+            this.activeConfig.isActive=true;
+            this.CalculateRatios();
+            this.RunDeathTrigger();
+        }
+      }
+      catch(e){
+        this.StopRandomizer();
+        this.output.push({color:'red',text:'Error occured: '+e})
+      }
+      
     },
     CalculateRatios(){
       this.aliveNodeIndices.forEach(index=>{
@@ -184,46 +224,45 @@ export default {
       this.deadNodeIndices.push(config.index);
       this.output.push({text:`Node ${config.index} just passed away mysteriously. RIP big guy.`})
     },
-    GetRandomIndex(){
-      this.aliveNodeIndices = this.nodeConfigs.filter(node=> !this.deadNodeIndices.includes(node.index)).map(node=> node.index);
+    ChooseRandomNode(){
       let randomResult = Math.floor(Math.random() * Math.floor(this.aliveNodeIndices.length));
-        
-      return randomResult;
+      
+      return this.nodeConfigs[this.aliveNodeIndices[randomResult]];
     },
-    ChooseNode(){
-      try{
-
-        if(this.deadNodeIndices.length === this.nodeConfigs.length){
-          this.StopRandomizer();
-        }
-        else{
-  
-          let randomResult =  this.GetRandomIndex();
-           if(this.activeConfig){
-             this.activeConfig.isActive=false;
-           }
-           this.globalCounter++;
-           this.activeConfig = this.nodeConfigs[this.aliveNodeIndices[randomResult]];
-           this.activeConfig.counter++;
-           this.activeConfig.isActive=true;
-           this.CalculateRatios();
-        }
-      }
-      catch(e){
-        this.StopRandomizer();
-        this.output.push({color:'red',text:'Error occured: '+e})
-      }
+    IsLastNodeAlive(){
+      return this.aliveNodeIndices.length===1;
     },
-    CheckLastManStanding(){
-      if(this.aliveNodeIndices.length===1){
-        //last node alive, stop trying to kill him!
-        this.StopRandomizer();
+    IsSelectedNodeDead(){
+      return this.deadNodeIndices.includes(this.selectedNode.index);
+    },
+    RunEndGameProcess(){
+      
+      this.StopRandomizer();
 
-        if(this.aliveNodeIndices[0]=== this.selectedNode.index){
-          let amountWon = this.betAmount*2;
-          this.output.push({color:"green", text:"Congratulations! You won "+amountWon+" moneys!"})
+      let amountWon = this.betAmount*2;
+      if(!this.selectedNode){
+        this.output.push({color:'orange', text:'Those who do not venture, win nothing.'})
+      }
+      else if(!this.IsSelectedNodeDead()){
+       this.output.push({color:"green", text:"Congratulations! You won "+amountWon+" moneys!"})
+        this.money += amountWon;
+      }
+      else{
+        let amountLost = Math.min(this.betAmount,this.money)
+        this.output.push({color:"darkred", text:"You lost "+amountLost+" moneys, better luck next time."})
+        this.money -= amountLost;
+        if(this.money<0){
+          this.money=0;
         }
       }
+      
+    },
+    ValidateBet(){
+      if(this.betAmount > this.money){
+        this.output.push({color:'red',text:'Cannot place a bet larger than the money you have!'})
+        return false;
+      }
+      return true;
     }
   
     
